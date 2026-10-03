@@ -419,6 +419,7 @@ def test_run_model_reuses_tensor_return_for_mtp(monkeypatch):
     ],
 )
 def test_multi_step_decode_replays_captured_graph_as_expected(
+    monkeypatch,
     method_name,
     cg_mode,
     num_speculative_steps,
@@ -437,7 +438,7 @@ def test_multi_step_decode_replays_captured_graph_as_expected(
     speculator.block_tables = SimpleNamespace(input_block_tables=[])
     generate_draft = Mock()
     # Stub the bound method on a hand-built speculator to count eager draft calls.
-    speculator._generate_draft = generate_draft  # type: ignore[method-assign]  # stub
+    monkeypatch.setattr(speculator, "_generate_draft", generate_draft)
     run_fullgraph = Mock()
     speculator.decode_cudagraph_manager = SimpleNamespace(run_fullgraph=run_fullgraph)
     batch_desc = BatchExecutionDescriptor(
