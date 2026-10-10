@@ -100,7 +100,9 @@ def test_token_type_ids_stay_aligned_with_a_truncated_padded_prompt():
         truncation_side="left",
     )
 
-    processed_prompt = tok_params.apply_post_tokenization(
+    # _DummyTokenizer only has the attributes truncation and padding read; it
+    # is not a full TokenizerLike, so no overload matches.
+    processed_prompt = tok_params.apply_post_tokenization(  # type: ignore[call-overload]
         tokenizer,
         prompt,
     )
