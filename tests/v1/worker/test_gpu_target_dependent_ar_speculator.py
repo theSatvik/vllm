@@ -483,10 +483,13 @@ def test_fused_full_graph_maps_split_group_block_tables():
     speculator.block_tables = SimpleNamespace(
         input_block_tables=[torch.tensor([[1, 2], [0, 3]], dtype=torch.int32)]
     )
+    # Mapping writes into this tensor in place, so the replay below sees it.
+    kernel_block_table = group.kernel_block_table
+    assert kernel_block_table is not None
     replayed_tables = []
     speculator.decode_cudagraph_manager = SimpleNamespace(
         run_fullgraph=lambda _: replayed_tables.append(
-            group.kernel_block_table[0, :2, :8].tolist()
+            kernel_block_table[0, :2, :8].tolist()
         )
     )
 
