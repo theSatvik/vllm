@@ -125,7 +125,7 @@ class TestPerItemMergerFlags:
         assert bool(selected["pixel_values"][0][0, 0, 0] == 2.0)
         assert bool(selected["pixel_values"][1][0, 0, 0] == 0.0)
 
-    def test_process_vision_input_applies_flags_per_item(self):
+    def test_process_vision_input_applies_flags_per_item(self, monkeypatch):
         calls: list[str | None] = []
 
         def fake_get_vision_hidden_states(data, downsample_mode=None):
@@ -133,8 +133,12 @@ class TestPerItemMergerFlags:
             tag = 1.0 if downsample_mode == "16x" else 0.0
             return [torch.full((1,), tag) for _ in data["pixel_values"]]
 
-        model = object.__new__(MiniCPMV4_6ForConditionalGeneration)
-        model.get_vision_hidden_states = fake_get_vision_hidden_states
+        model = object.__new__(
+            MiniCPMV4_6ForConditionalGeneration  # type: ignore[type-abstract]  # protocol attrs unset
+        )
+        monkeypatch.setattr(
+            model, "get_vision_hidden_states", fake_get_vision_hidden_states
+        )
 
         image_input = {
             "type": "pixel_values",
@@ -157,15 +161,19 @@ class TestPerItemMergerFlags:
         # Mixed flags are encoded as separate groups, not one collapsed batch.
         assert calls == ["16x", "4x"]
 
-    def test_process_vision_input_uses_one_group_for_uniform_flags(self):
+    def test_process_vision_input_uses_one_group_for_uniform_flags(self, monkeypatch):
         calls: list[str | None] = []
 
         def fake_get_vision_hidden_states(data, downsample_mode=None):
             calls.append(downsample_mode)
             return [torch.zeros(1) for _ in data["pixel_values"]]
 
-        model = object.__new__(MiniCPMV4_6ForConditionalGeneration)
-        model.get_vision_hidden_states = fake_get_vision_hidden_states
+        model = object.__new__(
+            MiniCPMV4_6ForConditionalGeneration  # type: ignore[type-abstract]  # protocol attrs unset
+        )
+        monkeypatch.setattr(
+            model, "get_vision_hidden_states", fake_get_vision_hidden_states
+        )
 
         image_input = {
             "type": "pixel_values",

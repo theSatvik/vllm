@@ -19,7 +19,7 @@ from vllm.v1.worker.startup_plan import (
 )
 
 
-def test_sleep_preservation_restores_private_draft_not_shared_target():
+def test_sleep_preservation_restores_private_draft_not_shared_target(monkeypatch):
     target = torch.nn.Linear(2, 2, bias=False)
     draft = torch.nn.Module()
     draft.private = torch.nn.Linear(2, 2, bias=False)
@@ -27,7 +27,7 @@ def test_sleep_preservation_restores_private_draft_not_shared_target():
     expected = draft.private.weight.detach().clone()
     pointer = draft.private.weight.data_ptr()
     worker = object.__new__(gpu_worker.Worker)
-    worker.get_draft_model = lambda: draft
+    monkeypatch.setattr(worker, "get_draft_model", lambda: draft)
     assert set(worker._get_sleep_parameters(target)) == {
         "weight",
         "draft.private.weight",
@@ -45,14 +45,14 @@ def test_sleep_preservation_restores_private_draft_not_shared_target():
 
 @pytest.mark.parametrize("has_shared_draft", [False, True])
 def test_sleep_preservation_allows_empty_draft_but_rejects_target_typo(
-    has_shared_draft,
+    has_shared_draft, monkeypatch
 ):
     target = torch.nn.Linear(2, 2, bias=False)
     draft = torch.nn.Module() if has_shared_draft else None
     if draft is not None:
         draft.shared = target.weight
     worker = object.__new__(gpu_worker.Worker)
-    worker.get_draft_model = lambda: draft
+    monkeypatch.setattr(worker, "get_draft_model", lambda: draft)
     worker.model_config = SimpleNamespace(sleep_preserve_parameter_names=["draft.*"])
     worker._save_sleep_parameters(target)
     assert worker._sleep_saved_parameters == {}
